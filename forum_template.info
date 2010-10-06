@@ -1,0 +1,5 @@
+; $Id:$
+name = Forums Templates
+description = Templates for fulltext of forums. Built with Grupo 5's music :)
+core = 6.x
+

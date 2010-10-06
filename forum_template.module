@@ -1,0 +1,478 @@
+<?php
+//$Id:$
+
+function forum_template_menu() {
+
+	$items = array();
+	
+	$items['node/%node/participants'] = array(
+		'title' => 'Participants',
+		'title callback' => 't',
+		'description' => 'List of Participants',
+		'page callback' => 'forum_template_load_participants',
+		'page arguments' => array(1),
+		'access arguments' => array('access content'),
+		'type' => MENU_LOCAL_TASK,
+		'weight' => 20,
+	);
+
+	$items['node/%node/comments'] = array(
+		'title' => 'Comments',
+		'title callback' => 't',
+		'description' => 'List of comments',
+		'page callback' => 'forum_template_load_comments',
+		'page arguments' => array(1),
+		'access arguments' => array('access content'),
+		'type' => MENU_LOCAL_TASK,
+		'weight' => 30,
+	);
+
+	$items['node/%node/contents'] = array(
+		'title' => 'Content',
+		'title callback' => 't',
+		'description' => 'List of contents',
+		'page callback' => 'forum_template_load_contents',
+		'page arguments' => array(1),
+		'access arguments' => array('access content'),
+		'type' => MENU_LOCAL_TASK,
+		'weight' => 10,
+	);	
+
+	$items['node/%node/register_form'] = array(
+		'title' => 'Register form',
+		'title callback' => 't',
+		'description' => 'Register Form',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('forum_template_load_form_register'),
+		'access arguments' => array('access content'),
+		'type' => MENU_LOCAL_TASK,
+		'weight' => 40,
+	);	
+	
+	return $items;	
+	
+}
+
+function forum_template_load_participants($node) {
+	
+
+	$field_participantes = content_view_field(content_fields('field_participantes','forum'),$node);
+	
+	//this is natural output but is unordered
+	//$userlist = isset($field_participantes ) ? $field_participantes : t('This forum doesn\'t have participants');
+	
+	$sql = "SELECT *  FROM {content_field_participantes} WHERE nid = %d";
+	$sql_count = "SELECT COUNT(*)  FROM {content_field_participantes} WHERE nid = %d";
+
+	$query = db_query($sql, $node->nid);
+	$query_count = db_query($sql, $node->nid);
+	$count = db_affected_rows();
+	$i = 10;
+	if ($count > 1) {
+		
+	while($data = db_fetch_object($query)) {
+		
+		$node_user = node_load($data->field_participantes_nid);
+		$lis[] = $node_user->title;
+		if(isset($node_user->title)) {
+      $i++;
+			$userlist[$node_user->title] = l($node_user->title, 'node/'.$node_user->nid)." (".$node_user->field_institucion_pertenece[0]['value'].")";	
+		}
+		
+		ksort($userlist);
+	
+	}
+	
+  $output = "<div class=\"forum-template-participants-body\">".theme('item_list',$userlist, $i.' '.t('participants'), 'ol')."</div>" ;
+
+	}
+	else {
+		
+	$output = '';	
+		
+		}
+
+  dsm($node);
+	return $output;
+	
+}
+
+
+function forum_template_load_comments($node) {
+
+  $comments = comment_render($node, $cid = 0);
+	//$comments = $comments == '' ? $comments : t('This forum doesn\'t have comments');
+	return $comments; 
+
+}
+
+function forum_template_load_contents($node) {
+
+	$field_ponencias = content_fields('field_ponencias','forum');
+	$view_field_ponencias = content_view_field($field_ponencias,$node);
+	$field_casos = content_fields('field_casos','forum');
+	$view_field_casos = content_view_field($field_casos,$node);
+	
+	//$sql = "SELECT nid FROM {content_field_foros_relacionados} INNER JOIN {content_type_forum_topics} ON {content_field_foros_relacionados}.nid = {content_type_forum_topics}.nid WHERE field_foros_relacionados_nid = '%d' ORDER BY {content_type_forum_topics}.field_orden_value ASC";
+	
+	$sql = "SELECT nid FROM {content_field_foros_relacionados} WHERE field_foros_relacionados_nid = '%d'";
+	
+	$query = db_query($sql, $node->nid);
+	
+	while($data = db_fetch_object($query)) {
+		
+		$node_forum_topic = node_load($data->nid);
+		//it's not necessary to show related forums
+		unset($node_forum_topic->field_foros_relacionados);
+		unset($node_forum_topic->field_orden);				
+		$forum_topics_list[] = node_view($node_forum_topic, $teaser = FALSE, $page = FALSE, $links = FALSE);
+		
+		}
+	
+	$output = theme('item_list',$forum_topics_list);
+	$output .= $view_field_ponencias.$view_field_casos;
+	
+  return $output;
+}
+
+function forum_template_load_form_register() {
+	
+	$form = array();
+	
+	$form['names'] = array(
+		'#title' => t('Nombres'),
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+		
+	$form['surnames'] = array(
+		'#title' => t('Apellidos'),
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+	
+	$form['institution'] = array(
+		'#title' => t('Institución'),
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+		
+	$form['web'] = array(
+		'#title' => t('Web de su organización o proyecto'),
+		'#type' => 'textfield',
+		'#size' => 30,
+	);
+	
+	$form['career'] = array(
+		'#title' => t('Especialidad'),
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+	
+	$form['country'] = array(
+		'#title' => t('País'),
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+	
+	$form['email'] = array(
+		'#title' => 'E-mail',
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+	
+	$form['phone'] = array(
+		'#title' => t('Telephone'),
+		'#type' => 'textfield',
+		'#size' => 30,
+    '#required' => TRUE,		
+	);
+	
+	$form['information'] = array(
+		'#title' => 'Información',
+		'#description' => 'Puede dejar un link o alguna información (publicaciones, artículos) sobre el proyecto que vienen desarrollando o en el que participa actualmente?',
+		'#type' => 'textarea',
+		'#cols' => 60,
+		'#rows' => 5,
+	);
+	
+	$form['interest'] = array(
+		'#title' => 'Interés',
+		'#description' => '¿Estaría interesado en recibir información sobre los servicios que brinda InfoAndina, centro de recursos sobre desarrollo sostenible de montañas en los Andes?',
+		'#type' => 'checkbox',
+	);
+	
+	$form['submit'] = array(
+		'#value' => t('Submit'),
+		'#type' => 'submit',
+	);
+
+return $form;
+	
+}
+
+
+function forum_template_load_form_register_validate($form, &$form_state) {
+//after is neccesary validate fields	
+	
+$email = $form_state['values']['email'];
+	
+$pattern = '/^([a-z0-9])(([-a-z0-9._])*([a-z0-9]))*\@([a-z0-9])' .
+'(([a-z0-9-])*([a-z0-9]))+' . '(\.([a-z0-9])([-a-z0-9_-])?([a-z0-9])+)+$/i';
+
+if (preg_match($pattern, $email) == 0) {
+	
+		$form_state['rebuild'] = TRUE;
+	  drupal_set_message('Sus datos no fueron enviados por que no escribió bien su correo eléctronico<br/ >
+		Por favor inténtelo de nuevo');
+	}
+
+}	
+
+
+function forum_template_load_form_register_submit($form, &$form_state) {
+
+	$body  = 'Nombres: '.$form_state['values']['names'].'<br />';
+	$body .= 'Apellidos: '.$form_state['values']['surnames'].'<br />';
+	$body .= 'Institución: '.$form_state['values']['institution'].'<br />';
+	$body .= 'Web: '.$form_state['values']['web'].'<br />';
+	$body .= 'Especialidad: '.$form_state['values']['career'].'<br />';
+	$body .= 'País: '.$form_state['values']['country'].'<br />';
+	$body .= 'E-mail: '.$form_state['values']['email'].'<br />';
+	$body .= 'Teléfono: '.$form_state['values']['phone'].'<br />';
+	$body .= 'Información: '.$form_state['values']['information'].'<br />';
+	$body .= 'Interés: '.$form_state['values']['interest'].'<br />';
+
+	$message = array(
+		'id' => 'forum_template_load_form_submit_id',
+		'to' => 'musuq.briceno@gmail.com',
+		'subject' => 'Inscripción foro panoramacc',
+		'body' => $body,
+		'headers' => array(
+				'Content-type' => 'text/html',
+				'charset' => 'charset=iso-8859-1',
+				'From' => 'infoandina@condesan.org',
+			)
+	);
+
+	if (drupal_mail_send($message)) {
+	
+		drupal_set_message('Los datos fueron enviados. Nos pondremos en contacto con Ud.');
+		
+		}
+  
+	return array(); // trick :)
+	
+}	
+
+
+
+function forum_template_perm() {
+	
+	return array('access participants');
+	
+	}
+
+
+function forum_template_preprocess_node(&$vars) {
+	
+	if($vars['type'] == 'forum') {
+	  //reallocating taxonomy terms to move below full text node
+		$terms = $vars['terms'];
+		//clean taxonomy terms in $vars variable
+		$vars['terms'] = '';
+		$node_forum = node_load($vars['nid']);
+				
+		$output = $node_forum->body;
+		
+		//moving taxonomy terms below full text node
+		$output .= "<div class=\"taxonomy-label\">".t('Related Terms')."	:&nbsp;<br />".$terms."</div>";
+	
+		//reallocating content 
+		$vars['content'] = $output;
+				
+	}
+	
+		return $vars;
+	
+	}
+	
+	
+function forum_template_preprocess_page(&$vars) {
+	//print_r($vars);
+	if($vars['node']->type == 'forum') {
+		
+		$vars['template_files'][0] = 'page-foros-infoandina';
+		
+		$bannerpath = $vars['node']->field_banner[0]['filepath'];
+		
+		if (isset($bannerpath)) {
+		
+			$banner = theme('image',$vars['node']->field_banner[0]['filepath']);
+		
+			}
+		
+		else {
+		  //banner by default
+			$banner = theme('image', file_directory_path().'/foros/banners/img_foro.jpg');
+		
+			}
+    
+		$vars['banner'] = $banner;
+		$node_forum = node_load($vars['node']->nid);
+		
+		//building cck fields views
+		$moderador 			    = content_view_field(content_fields('field_moderador_foro','forum'), $node_forum);			
+		$lugar 							= content_view_field(content_fields('field_lugar','forum'), $node_forum);	
+		$instituciones_rel	= content_view_field(content_fields('instituciones_relacionadas','forum'), $node_forum);	
+		#$contacto 					= content_view_field(content_fields('field_contacto','forum'), $node_forum);					
+    #$email 						= content_view_field(content_fields('field_email','forum'), $node_forum);	
+		$contacto           = "<div class=\"field\"><div class=\"field-label\">Contacto: </div>".l($node_forum->field_contacto['0']['value'], 'mailto:'.$node_forum->field_email['0']['value'])."</div>";
+		$fechaini						= content_view_field(content_fields('field_fechaini','forum'), $node_forum);	
+		$web 								= content_view_field(content_fields('field_web','forum'), $node_forum);		
+		$archivo 						= content_view_field(content_fields('field_archivo','forum'), $node_forum);	
+		$proyectos_rel 			= content_view_field(content_fields('field_proyectos_relacionados','forum'), $node_forum);	
+		
+		$vars['basic_information'] = $moderador . $lugar . $instituciones_rel . $contacto . $fechaini	. $web . $archivo . $proyectos_rel 	;
+		}
+
+    if (isset($node_forum->field_instituciones_relacionadas)) {
+		foreach($node_forum->field_instituciones_relacionadas as $key => $value) {
+			
+			$node_directorio = node_load($value['nid']);
+			$image = theme('imagecache','escala_150x150',$node_directorio->field_logo[0]['filepath']);
+			$images_logos[] = l($image, strip_tags($node_directorio->field_web[0]['value']), array('html'=>'TRUE', 'attributes' => array('target'=>'_blank')));
+		}
+    
+		$vars['logos_instituciones'] = "<div class=\"field field-type-text field-field-institutions\"><div class=\"field-label\">".theme('item_list',$images_logos,t('Organizadores'))."</div></div>";
+		
+	  }
+		
+		//remove tabs for contents diferents from forum node
+		//See http://drupal.org/node/68792
+		if($vars['node']->type !== 'forum') {
+
+			if($vars['user']->uid  == 0){forum_template_removetab('Ver', $vars);}
+			forum_template_removetab('Participantes', $vars);
+			forum_template_removetab('Formulario de registro', $vars);
+			forum_template_removetab('Comentarios', $vars);
+			forum_template_removetab('Contenido', $vars);
+			
+		}
+		
+		if($vars['user']->uid !== 0) {
+			$account = array();
+			$account[] = l(t('My account'),'user/'.$user->uid);
+			$account[] = l(t('Logout'),'logout');	
+			$vars['account'] = '<div id=\'forum_template_box_account\'>'.theme('item_list', $account, substr($vars['user']->name, 0, 20).'...', $type = 'ul', array('class' => 'forum_template_account')).'</div>';
+		}
+		else {
+			$vars['account'] = '';
+		}
+   //print_r($vars['user']);
+		
+		return $vars;	
+
+}	
+
+function forum_template_preprocess(&$vars, $hooks) {
+	//add get_url variable to $vars array to use url in diferents situations as 'switch control'
+	$vars['get_url'] = $_GET['q'];
+  //print_r($hooks);
+	return $vars;	
+
+}	
+
+/**
+ * this hook disable comments list below full text node
+ * comment_wrapper is the name of this hook
+ * if number of parts of URL is equal or less than 2 then comments list must be showed
+ * if url = node/24122 (two parts) then comments is hidden
+ * else url = node/24122/comments (three parts) then comments are showed
+ */
+
+function forum_template_preprocess_comment_wrapper(&$vars) {
+	
+	$url = explode('/',$vars['get_url']);
+	//dsm($vars);
+	if ((count($url) <= 2) && ($vars['node']->type = 'forum')) {
+			$vars['content'] = '';
+		}
+  
+	return $vars;			
+
+}
+
+function forum_template_preprocess_comment(&$vars) {
+
+  if (($vars['user']->uid == 0) && ($vars['node']->type = 'forum')) {
+			unset($vars[links]);
+		}
+	return $vars;	
+
+}	
+
+
+function forum_template_init() {
+
+  drupal_add_css(drupal_get_path('module', 'forum_template') .'/forum_template.css');	
+  drupal_add_js(drupal_get_path('module', 'forum_template') .'/forum_template.js');	
+	
+}
+
+// Remove undesired local task tabs.
+// Related to yourthemename_removetab() in yourthemename_preprocess_page().
+function forum_template_removetab($label, &$vars) {
+  $tabs = explode("\n", $vars['tabs']);
+  $vars['tabs'] = '';
+
+  foreach ($tabs as $tab) {
+    if (strpos($tab, '>' . $label . '<') === FALSE) {
+      $vars['tabs'] .= $tab . "\n";
+    }
+  }
+}
+
+function forum_template_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+	
+	  switch ($op) {
+    case 'alter':
+		 
+      break;
+    case 'insert':
+    case 'update':
+    case 'view':    
+		  // add css to body field
+			$node->content['body']['#value'] = "<div class='node-body-".$node->type."'>".$node->body."</div>";
+			break;
+  }
+
+	
+	}
+	
+	
+
+/*
+function forum_template_theme() {
+
+	return array(
+		'page_microsite' => array(
+		'template' => 'page-my-forum',
+		'arguments' => array('node' => NULL),		
+		),
+	);	
+	
+	}
+
+function template_preprocess_page_microsite(&$vars) {
+	dsm($vars);
+	//return $vars;
+	
+}
+*/
