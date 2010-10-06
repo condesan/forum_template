@@ -55,44 +55,18 @@ function forum_template_menu() {
 
 function forum_template_load_participants($node) {
 	
-
-	$field_participantes = content_view_field(content_fields('field_participantes','forum'),$node);
-	
+	#$field_participantes = content_view_field(content_fields('field_participantes','forum'),$node);
 	//this is natural output but is unordered
 	//$userlist = isset($field_participantes ) ? $field_participantes : t('This forum doesn\'t have participants');
-	
-	$sql = "SELECT *  FROM {content_field_participantes} WHERE nid = %d";
-	$sql_count = "SELECT COUNT(*)  FROM {content_field_participantes} WHERE nid = %d";
-
-	$query = db_query($sql, $node->nid);
-	$query_count = db_query($sql, $node->nid);
-	$count = db_affected_rows();
-	$i = 10;
-	if ($count > 1) {
-		
-	while($data = db_fetch_object($query)) {
-		
-		$node_user = node_load($data->field_participantes_nid);
-		$lis[] = $node_user->title;
-		if(isset($node_user->title)) {
-      $i++;
-			$userlist[$node_user->title] = l($node_user->title, 'node/'.$node_user->nid)." (".$node_user->field_institucion_pertenece[0]['value'].")";	
-		}
-		
-		ksort($userlist);
-	
+	$participants = $node->field_participantes;
+	$i = 0;
+	foreach($participants as $participant) {
+		$i++;
+		$node_user = node_load($participant['nid']);	
+		$userlist[$node_user->title.'-'.$i] = l($node_user->title, 'node/'.$node_user->nid)." (".$node_user->field_institucion_pertenece[0]['value'].")";	
 	}
-	
-  $output = "<div class=\"forum-template-participants-body\">".theme('item_list',$userlist, $i.' '.t('participants'), 'ol')."</div>" ;
-
-	}
-	else {
-		
-	$output = '';	
-		
-		}
-
-  dsm($node);
+	ksort($userlist);
+  $output = "<div class=\"forum-template-participants-body\">".theme('item_list',$userlist, count($participants).' '.t('participants'), 'ol')."</div>" ;
 	return $output;
 	
 }
