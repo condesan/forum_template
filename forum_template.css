@@ -418,3 +418,12 @@ color:#575757;
 .field-field-institutions .field-label .item-list ul {
 padding:0em;
 }
+
+
+.show-user-details .content-field-foto {
+float:left;
+}
+
+.forum-template-participants-body ol li {
+clear:both;
+}

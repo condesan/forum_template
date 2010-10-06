@@ -27,18 +27,16 @@
 	//disable link in titles of contents
 	$('#page-forum #content #content-inner ul li .node-inner h2.title a').attr('href', '#')
 	//show user data
-	$('.forum-template-participants-body ul li').each(function(){
+	$('.forum-template-participants-body ol li').each(function(){
 	$(this).append('<div class="show-user-details"></div>');
 	})
 	
-	$('.forum-template-participants-body ul li a').click(function(){
+	$('.forum-template-participants-body ol li a').click(function(){
 			var url = $(this).attr('href');
 			var link = this;
 			$.get(url,function(data) {
-					var $content1 = $('.node-type-profile .field-field-ciudad', data);
-					var $content2 = $('.node-type-profile .field-field-institucion-pertenece', data);
-					var $content3 = $('.node-type-profile .field-field-foto', data);
-					var html = $content1.html() + $content2.html() + $content3.html() ;
+					var $content = $('.node-type-profile .content-field-foto-description', data);
+					var html = $content.html();
 					$(link).siblings('.show-user-details').html(html);
 				 
 			});
