@@ -427,3 +427,8 @@ float:left;
 .forum-template-participants-body ol li {
 clear:both;
 }
+
+#page-forum #content .show-recurso-details li  a img {
+margin:0px;
+}
+ 
